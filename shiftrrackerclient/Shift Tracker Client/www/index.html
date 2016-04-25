@@ -1,16 +1,105 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *">
         <meta name="format-detection" content="telephone=no">
         <meta name="msapplication-tap-highlight" content="no">
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
         <link rel="stylesheet" type="text/css" href="css/index.css">
+        <link rel="stylesheet" type="text/css" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
         <title>Shift Tracker Client</title>
     </head>
     <body>
+        <div data-role="page" id="home">
+            <div data-role="header">
+                <h1>Inicio</h1>
+            </div>
+
+            <div data-role="main" class="ui-content">
+                <p>
+                    <a target="_blank" href="javascript:scan();" style="text-decoration: none"><button>Escanear</button></a>
+                    <a target="_blank" href="#display" style="text-decoration: none"><button>Mostrar Datos Escaneados</button></a>
+                </p>
+            </div>
+        </div>
+
+        <div data-role="page" id="display">
+            <div data-role="header">
+                <a target="_blank" href="#home" class="ui-btn ui-icon-home ui-btn-icon-left">Inicio</a>
+                <h1>Mostrar</h1>
+            </div>
+
+            <div data-role="main" class="ui-content">
+                <table data-role="table" data-mode="column" id="allTable" class="ui-responsive table-stroke">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+        <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
         <script type="text/javascript" src="cordova.js"></script>
         <script type="text/javascript" src="scripts/platformOverrides.js"></script>
-        <script type="text/javascript" src="scripts/index.js"></script>
+        <script>
+            if (localStorage.getItem("LocalData") == null) {
+                var data = [];
+                data = JSON.stringify(data);
+                localStorage.setItem("LocalData", data);
+            }
+            function scan() {
+                cordova.plugins.barcodeScanner.scan(
+                    function (result) {
+                        if (!result.cancelled) {
+                            if (result.format == "QR_CODE") {
+                                navigator.notification.prompt("Favor de ingresar un nombre a los datos", function (input) {
+                                    var name = input.input1;
+                                    var value = result.text;
+
+                                    var data = localStorage.getItem("LocalData");
+                                    console.log(data);
+                                    data = JSON.parse(data);
+                                    data[data.length] = [name, value];
+
+                                    localStorage.setItem("LocalData", JSON.stringify(data));
+
+                                    alert("Hecho");
+                                });
+                            }
+                        }
+                    },
+                    function (error) {
+                        alert("Escaneo falló : " + error);
+                    }
+               );
+            }
+
+            $(document).on("pagebeforeshow", "#display", function () {
+                $("table#allTable tbody").empty();
+
+                var data = localStorage.getItem("LocalData");
+                console.log(data);
+                data = JSON.parse(data);
+
+                var html = "";
+
+                for (var count = 0; count < data.length; count++) {
+                    html = html + "<tr><td>" + data[count][0] + "</td><td><a href='javascript:openURL(\"" + data[count][1] + "\")'>" + data[count][1] + "</a></td></tr>";
+                }
+
+                $("table#allTable tbody").append(html).closest("table#allTable").table("refresh").trigger("create");
+
+            });
+
+            function openURL(url) {
+                window.open(url, '_blank', 'location=yes');
+            }
+
+        </script>
     </body>
 </html>
